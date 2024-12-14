@@ -2,8 +2,10 @@
 name = "ak09940a"
 version = "0.1.0"
 edition = "2024"
+authors = ["Fan Jiang"]
 description = "A simple library for the AK09940A magnetic sensor"
 resolver = "2"
+license = "Apache-2.0"
 
 [dependencies]
 embedded-hal = "1.0"
