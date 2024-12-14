@@ -1,4 +1,4 @@
-use arbitrary_int::{u1, u2, u3, u4, u5, u6, u18, u24};
+use arbitrary_int::{u1, u2, u3, u4, u5, u24};
 use bitbybit::bitfield;
 
 /// Register WIA1, address 0x00
@@ -130,11 +130,14 @@ struct SZ {
 /// Control Register 1
 /// Configures measurement modes and settings.
 #[bitfield(u8)]
+#[derive(Debug)]
 struct CNTL1 {
     #[bits(0..=2, rw)]
     watermark_level: u3,
+    /// DRDY/TRIG (DTSET) bit, 1: TRG pin, 0: DRDY pin
     #[bit(5, rw)]
     drdy_trg_setting: u1,
+    /// Ultra-low power drive mode, 1: enable, 0: disable
     #[bit(7, rw)]
     mt2: u1,
 }
@@ -153,10 +156,24 @@ struct CNTL2 {
 /// Sets operation modes and FIFO configurations.
 #[bitfield(u8)]
 struct CNTL3 {
+    /// Writing “1” to FIFO bit enables FIFO function.
+    /// Writing “0” disables FIFO function and clears the buffer at the same time.
+    /// FIFO function is available only in Continuous measurement modes.
+    /// It is prohibited to enable it other than Continuous measurement modes.
     #[bit(7, rw)]
     fifo_enable: bool,
+    /// MT[1:0] bits: Sensor drive setting: Only valid for MT2 bit (in CNTL1) = 0
+    /// - 00: Low power drive 1
+    /// - 01: Low power drive 2
+    /// - 10: Low noise drive 1
+    /// - 11: Low noise drive 2
     #[bits(5..=6, rw)]
     measurement_type: u2,
+    /// Operation mode
+    /// - 0: power-down, 1: single-shot,
+    /// - <=0b1111: continuous,
+    /// - 11000: external trigger
+    /// - 10000: self-test
     #[bits(0..=4, rw)]
     operation_mode: u5,
 }
@@ -166,6 +183,7 @@ struct CNTL3 {
 /// Controls the soft reset function.
 #[bitfield(u8)]
 struct CNTL4 {
+    /// SRST resets the sensor, and the bit will be cleared by the sensor after the reset is complete.
     #[bit(0, rw)]
     soft_reset: bool,
 }
@@ -175,6 +193,8 @@ struct CNTL4 {
 /// Enables or disables the I²C interface.
 #[bitfield(u8)]
 struct I2CDIS {
+    /// 0b00011011 will disable I2C the I2C interface.
+    /// To re-enable I2C, either reset the sensor or set a start condition on the I2C bus for 8 times.
     #[bits(0..=7, rw)]
     i2c_disable: u8,
 }
@@ -195,6 +215,18 @@ mod tests {
 
     #[test]
     fn it_works() {
-        assert_eq!(2 + 2, 4);
+        let cntl1_value = 0b01000001;
+        let cntl1 = CNTL1::new_with_raw_value(cntl1_value);
+        assert_eq!(cntl1.raw_value(), cntl1_value);
+
+        let cntl1_mt2_1 = cntl1.with_mt2(u1::new(1));
+        assert_eq!(cntl1_mt2_1.raw_value(), 0b11000001);
+    }
+
+    #[test]
+    fn test_hx() {
+        let hx_value = u24::new(0x123456);
+        let hx = HX::new_with_raw_value(hx_value);
+        assert_eq!(hx.raw_value(), hx_value);
     }
 }

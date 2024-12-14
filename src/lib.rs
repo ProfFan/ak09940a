@@ -1,16 +1,21 @@
-pub mod reg;
+use embedded_hal::spi::SpiDevice;
+use ll::LL;
 
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+pub mod reg;
+pub mod ll;
+
+pub struct AK09940A<DEV>
+where
+    DEV: SpiDevice,
+{
+    dev: LL<DEV>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+impl<DEV> AK09940A<DEV>
+where
+    DEV: SpiDevice,
+{
+    pub fn new(dev: DEV) -> Self {
+        Self { dev: LL { dev } }
     }
 }
