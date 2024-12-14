@@ -3,13 +3,17 @@ name = "ak09940a"
 version = "0.1.0"
 edition = "2024"
 description = "A simple library for the AK09940A magnetic sensor"
+resolver = "2"
 
 [dependencies]
 embedded-hal = "1.0"
-embedded-hal-async = { version = "1.0", optional = true }
+embedded-hal-async = { version = "1.0" }
 bitbybit = "1.3"
 arbitrary-int = ">=1.0"
 heapless = "0.8"
+duplicate = "2.0"
+maybe-async = "0.2"
+arrayref = ">=0.3"
 
 [dev-dependencies]
 embedded-hal-mock = { version = "0.11.*", features = ["embedded-hal-async"] }
@@ -18,5 +22,5 @@ async-std = { version = "1.12.*", features = ["attributes"] }
 
 [features]
 default = []
-async = ["dep:embedded-hal-async"]
+# async = ["dep:embedded-hal-async"]
 blocking = []

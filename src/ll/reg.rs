@@ -1,11 +1,44 @@
 use arbitrary_int::{u1, u2, u3, u4, u5, u24};
 use bitbybit::bitfield;
 
+#[repr(u8)]
+pub enum RegAddress {
+    WIA1 = 0x00,
+    WIA2 = 0x01,
+    RSV1 = 0x02,
+    RSV2 = 0x03,
+    ST = 0x0F,
+    ST1 = 0x10,
+    HXL = 0x11,
+    HXM = 0x12,
+    HXH = 0x13,
+    HYL = 0x14,
+    HYM = 0x15,
+    HYH = 0x16,
+    HZL = 0x17,
+    HZM = 0x18,
+    HZH = 0x19,
+    TMPS = 0x1A,
+    ST2 = 0x1B,
+    SXL = 0x20,
+    SXH = 0x21,
+    SYL = 0x22,
+    SYH = 0x23,
+    SZL = 0x24,
+    SZH = 0x25,
+    CNTL1 = 0x30,
+    CNTL2 = 0x31,
+    CNTL3 = 0x32,
+    CNTL4 = 0x33,
+    I2CDIS = 0x36,
+    TS = 0x37,
+}
+
 /// Register WIA1, address 0x00
 /// Company Identification Register
 /// Contains a fixed value identifying the manufacturer.
 #[bitfield(u8)]
-struct WIA1 {
+pub struct WIA1 {
     #[bits(0..=7, r)]
     company_id: u8,
 }
@@ -14,7 +47,7 @@ struct WIA1 {
 /// Device Identification Register
 /// Contains a fixed value identifying the device.
 #[bitfield(u8)]
-struct WIA2 {
+pub struct WIA2 {
     #[bits(0..=7, r)]
     device_id: u8,
 }
@@ -23,7 +56,7 @@ struct WIA2 {
 /// Reserved Register 1
 /// Reserved for internal use.
 #[bitfield(u8)]
-struct RSV1 {
+pub struct RSV1 {
     #[bits(0..=7, r)]
     reserved: u8,
 }
@@ -32,7 +65,7 @@ struct RSV1 {
 /// Reserved Register 2
 /// Reserved for internal use.
 #[bitfield(u8)]
-struct RSV2 {
+pub struct RSV2 {
     #[bits(0..=7, r)]
     reserved: u8,
 }
@@ -41,7 +74,7 @@ struct RSV2 {
 /// Status Register (for polling)
 /// Indicates the data ready and data overrun status.
 #[bitfield(u8)]
-struct ST {
+pub struct ST {
     #[bit(1, r)]
     data_overrun: bool,
     #[bit(0, r)]
@@ -52,7 +85,7 @@ struct ST {
 /// Status 1 Register
 /// Provides the measurement data frame number and data ready status.
 #[bitfield(u8)]
-struct ST1 {
+pub struct ST1 {
     #[bits(1..=4, r)]
     frame_number: u4,
     #[bit(0, r)]
@@ -62,7 +95,7 @@ struct ST1 {
 /// Register HX, address 0x11..0x13 [L, M, H]
 /// X-axis Magnetic Data
 #[bitfield(u24)]
-struct HX {
+pub struct HX {
     #[bits(0..=23, r)]
     hx: u24,
 }
@@ -70,7 +103,7 @@ struct HX {
 /// Register HY, address 0x14..0x16 [L, M, H]
 /// Y-axis Magnetic Data
 #[bitfield(u24)]
-struct HY {
+pub struct HY {
     #[bits(0..=23, r)]
     hy: u24,
 }
@@ -78,7 +111,7 @@ struct HY {
 /// Register HZ, address 0x17..0x19 [L, M, H]
 /// Z-axis Magnetic Data
 #[bitfield(u24)]
-struct HZ {
+pub struct HZ {
     #[bits(0..=23, r)]
     hz: u24,
 }
@@ -86,7 +119,7 @@ struct HZ {
 /// Register TMPS, address 0x1A
 /// Temperature Sensor Data
 #[bitfield(u8)]
-struct TMPS {
+pub struct TMPS {
     #[bits(0..=7, r)]
     temperature: u8,
 }
@@ -95,7 +128,7 @@ struct TMPS {
 /// Status 2 Register
 /// Indicates overflow and data overrun status.
 #[bitfield(u8)]
-struct ST2 {
+pub struct ST2 {
     #[bit(1, r)]
     invalid_data: bool,
     #[bit(0, r)]
@@ -105,7 +138,7 @@ struct ST2 {
 /// Register SX, address 0x20..0x21 [L, H]
 /// Self-Test X-axis Data
 #[bitfield(u16)]
-struct SX {
+pub struct SX {
     #[bits(0..=15, r)]
     sx: u16,
 }
@@ -113,7 +146,7 @@ struct SX {
 /// Register SY, address 0x22..0x23 [L, H]
 /// Self-Test Y-axis Data
 #[bitfield(u16)]
-struct SY {
+pub struct SY {
     #[bits(0..=15, r)]
     sy: u16,
 }
@@ -121,7 +154,7 @@ struct SY {
 /// Register SZ, address 0x24..0x25 [L, H]
 /// Self-Test Z-axis Data
 #[bitfield(u16)]
-struct SZ {
+pub struct SZ {
     #[bits(0..=15, r)]
     sz: u16,
 }
@@ -131,7 +164,7 @@ struct SZ {
 /// Configures measurement modes and settings.
 #[bitfield(u8)]
 #[derive(Debug)]
-struct CNTL1 {
+pub struct CNTL1 {
     #[bits(0..=2, rw)]
     watermark_level: u3,
     /// DRDY/TRIG (DTSET) bit, 1: TRG pin, 0: DRDY pin
@@ -146,7 +179,7 @@ struct CNTL1 {
 /// Control Register 2
 /// Controls temperature measurement and other settings.
 #[bitfield(u8)]
-struct CNTL2 {
+pub struct CNTL2 {
     #[bit(6, rw)]
     temperature_enable: bool,
 }
@@ -155,7 +188,7 @@ struct CNTL2 {
 /// Control Register 3
 /// Sets operation modes and FIFO configurations.
 #[bitfield(u8)]
-struct CNTL3 {
+pub struct CNTL3 {
     /// Writing “1” to FIFO bit enables FIFO function.
     /// Writing “0” disables FIFO function and clears the buffer at the same time.
     /// FIFO function is available only in Continuous measurement modes.
@@ -182,7 +215,7 @@ struct CNTL3 {
 /// Control Register 4
 /// Controls the soft reset function.
 #[bitfield(u8)]
-struct CNTL4 {
+pub struct CNTL4 {
     /// SRST resets the sensor, and the bit will be cleared by the sensor after the reset is complete.
     #[bit(0, rw)]
     soft_reset: bool,
@@ -192,7 +225,7 @@ struct CNTL4 {
 /// I2C Disable Register
 /// Enables or disables the I²C interface.
 #[bitfield(u8)]
-struct I2CDIS {
+pub struct I2CDIS {
     /// 0b00011011 will disable I2C the I2C interface.
     /// To re-enable I2C, either reset the sensor or set a start condition on the I2C bus for 8 times.
     #[bits(0..=7, rw)]
@@ -203,7 +236,7 @@ struct I2CDIS {
 /// Test Register
 /// For factory testing purposes. Do not access.
 #[bitfield(u8)]
-struct TS {
+pub struct TS {
     #[bits(0..=7, rw)]
     test_bits: u8,
 }
