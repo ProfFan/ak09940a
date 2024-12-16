@@ -1,7 +1,7 @@
 [package]
 name = "ak09940a"
-version = "0.1.0"
-edition = "2024"
+version = "0.1.1"
+edition = "2021"
 authors = ["Fan Jiang"]
 description = "A simple library for the AK09940A magnetic sensor"
 resolver = "2"
