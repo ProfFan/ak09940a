@@ -10,7 +10,7 @@ use duplicate::duplicate_item;
     [ non_blocking ]     [ must_be_async ]    [ embedded_hal_async ];
     [ blocking ]         [ must_be_sync ]     [ embedded_hal ];
 )]
-mod async_type {
+pub mod async_type {
     use crate::ll::async_type::LL;
     use crate::ll::reg::{self, RegAddress};
     use crate::states::{Continuous, Powerdown, SingleShot};
