@@ -13,10 +13,10 @@ use duplicate::duplicate_item;
 pub mod async_type {
     use crate::ll::async_type::LL;
     use crate::ll::reg::{self, RegAddress};
-    use crate::states::{Continuous, Powerdown, SingleShot};
-    use SpiType::spi::SpiDevice;
-    use arbitrary_int::u5;
+    use crate::states::{Continuous, ExternalTrigger, Powerdown, SingleShot};
+    use arbitrary_int::{u1, u5};
     use maybe_async::maybe_async_attr;
+    use SpiType::spi::SpiDevice;
 
     pub enum Error<SPI>
     where
@@ -36,7 +36,7 @@ pub mod async_type {
         DEV: SpiDevice,
     {
         dev: LL<DEV>,
-        state: State,
+        _state: State,
     }
 
     impl<DEV> AK09940A<DEV, Powerdown>
@@ -46,7 +46,7 @@ pub mod async_type {
         pub fn new(dev: DEV) -> Self {
             Self {
                 dev: LL { dev },
-                state: Powerdown,
+                _state: Powerdown,
             }
         }
     }
@@ -73,7 +73,7 @@ pub mod async_type {
 
             Ok(AK09940A {
                 dev: self.dev,
-                state: SingleShot,
+                _state: SingleShot,
             })
         }
 
@@ -104,7 +104,46 @@ pub mod async_type {
 
             Ok(AK09940A {
                 dev: self.dev,
-                state: Continuous,
+                _state: Continuous,
+            })
+        }
+
+        /// Enter external trigger mode
+        ///
+        /// Make sure that the DRDY/TRG pin is low until the DTSET bit is set
+        #[maybe_async_attr]
+        pub async fn external_trigger(
+            mut self,
+        ) -> Result<AK09940A<DEV, ExternalTrigger>, Error<DEV>> {
+            let cntl3 = self
+                .dev
+                .read_reg(RegAddress::CNTL3)
+                .await
+                .map_err(Error::Spi)?;
+            let cntl3 = crate::ll::reg::CNTL3::new_with_raw_value(cntl3)
+                .with_operation_mode(u5::new(0b11000))
+                .raw_value();
+            self.dev
+                .write_reg(RegAddress::CNTL3, cntl3)
+                .await
+                .map_err(Error::Spi)?;
+
+            let cntl1 = self
+                .dev
+                .read_reg(RegAddress::CNTL1)
+                .await
+                .map_err(Error::Spi)?;
+            let cntl1 = crate::ll::reg::CNTL1::new_with_raw_value(cntl1)
+                .with_drdy_trg_setting(u1::new(0b1))
+                .raw_value();
+            self.dev
+                .write_reg(RegAddress::CNTL1, cntl1)
+                .await
+                .map_err(Error::Spi)?;
+
+            Ok(AK09940A {
+                dev: self.dev,
+                _state: ExternalTrigger,
             })
         }
     }
@@ -127,7 +166,7 @@ pub mod async_type {
                 .map_err(Error::Spi)?;
             Ok(AK09940A {
                 dev: self.dev,
-                state: Powerdown,
+                _state: Powerdown,
             })
         }
 

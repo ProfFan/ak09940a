@@ -1,6 +1,6 @@
 [package]
 name = "ak09940a"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
 authors = ["Fan Jiang"]
 description = "A simple library for the AK09940A magnetic sensor"

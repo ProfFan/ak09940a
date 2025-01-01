@@ -8,8 +8,8 @@ use duplicate::duplicate_item;
     [ blocking ]         [ must_be_sync ]     [ embedded_hal ];
 )]
 pub mod async_type {
-    use SpiType::spi::SpiDevice;
     use maybe_async::maybe_async_attr;
+    use SpiType::spi::SpiDevice;
 
     use super::reg::RegAddress;
 

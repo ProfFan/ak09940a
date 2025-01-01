@@ -1,4 +1,4 @@
-use arbitrary_int::{u1, u2, u3, u4, u5, u24};
+use arbitrary_int::{u1, u2, u24, u3, u4, u5};
 use bitbybit::bitfield;
 
 #[repr(u8)]
