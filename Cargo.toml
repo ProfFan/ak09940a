@@ -1,11 +1,12 @@
 [package]
 name = "ak09940a"
-version = "0.2.0"
+version = "0.2.2"
 edition = "2021"
 authors = ["Fan Jiang"]
 description = "A simple library for the AK09940A magnetic sensor"
 resolver = "2"
 license = "Apache-2.0"
+homepage = "https://github.com/ProfFan/ak09940a"
 
 [dependencies]
 embedded-hal = "1.0"
@@ -24,5 +25,3 @@ async-std = { version = "1.12.*", features = ["attributes"] }
 
 [features]
 default = []
-# async = ["dep:embedded-hal-async"]
-blocking = []

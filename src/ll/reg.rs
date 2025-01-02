@@ -1,6 +1,19 @@
 use arbitrary_int::{u1, u2, u24, u3, u4, u5};
 use bitbybit::bitfield;
 
+/// Sign extend a 24-bit signed integer (stored in a u24) to a 32-bit signed integer
+#[inline]
+pub fn sign_extend_u24(value: u24) -> i32 {
+    let value = value.value();
+    let sign_bit = (value & 0x800000) != 0;
+    let extended = value;
+    if sign_bit {
+        (extended | 0xFF000000) as i32
+    } else {
+        extended as i32
+    }
+}
+
 #[repr(u8)]
 pub enum RegAddress {
     WIA1 = 0x00,
@@ -36,7 +49,7 @@ pub enum RegAddress {
 
 /// Register WIA1, address 0x00
 /// Company Identification Register
-/// Contains a fixed value identifying the manufacturer.
+/// Contains a fixed value (0x48) identifying the manufacturer.
 #[bitfield(u8)]
 pub struct WIA1 {
     #[bits(0..=7, r)]
@@ -45,7 +58,7 @@ pub struct WIA1 {
 
 /// Register WIA2, address 0x01
 /// Device Identification Register
-/// Contains a fixed value identifying the device.
+/// Contains a fixed value (0xA3) identifying the device.
 #[bitfield(u8)]
 pub struct WIA2 {
     #[bits(0..=7, r)]
@@ -94,26 +107,50 @@ pub struct ST1 {
 
 /// Register HX, address 0x11..0x13 [L, M, H]
 /// X-axis Magnetic Data
+///
+/// 24-bit signed integer
 #[bitfield(u24)]
 pub struct HX {
     #[bits(0..=23, r)]
     hx: u24,
 }
 
+impl HX {
+    pub fn magnitude(&self) -> i32 {
+        sign_extend_u24(self.hx())
+    }
+}
+
 /// Register HY, address 0x14..0x16 [L, M, H]
 /// Y-axis Magnetic Data
+///
+/// 24-bit signed integer
 #[bitfield(u24)]
 pub struct HY {
     #[bits(0..=23, r)]
     hy: u24,
 }
 
+impl HY {
+    pub fn magnitude(&self) -> i32 {
+        sign_extend_u24(self.hy())
+    }
+}
+
 /// Register HZ, address 0x17..0x19 [L, M, H]
 /// Z-axis Magnetic Data
+///
+/// 24-bit signed integer
 #[bitfield(u24)]
 pub struct HZ {
     #[bits(0..=23, r)]
     hz: u24,
+}
+
+impl HZ {
+    pub fn magnitude(&self) -> i32 {
+        sign_extend_u24(self.hz())
+    }
 }
 
 /// Register TMPS, address 0x1A
@@ -121,7 +158,18 @@ pub struct HZ {
 #[bitfield(u8)]
 pub struct TMPS {
     #[bits(0..=7, r)]
-    temperature: u8,
+    tmps: u8,
+}
+
+impl TMPS {
+    /// Convert the temp to 0.001 Celsius
+    ///
+    /// Temp = 30C - TMPS / 1.7
+    pub fn milli_celsius(&self) -> i32 {
+        let tmps = self.raw_value() as i8 as i32;
+        let temp_10000 = 30000 - (tmps * 58823 / 100);
+        temp_10000 / 10
+    }
 }
 
 /// Register ST2, address 0x1B
@@ -261,5 +309,28 @@ mod tests {
         let hx_value = u24::new(0x123456);
         let hx = HX::new_with_raw_value(hx_value);
         assert_eq!(hx.raw_value(), hx_value);
+    }
+
+    #[test]
+    fn test_sign_extend_u24() {
+        let value = u24::new(0xFFFFFF);
+        let extended = sign_extend_u24(value);
+        assert_eq!(extended, -1);
+
+        let value = u24::new(0x7FFFFF);
+        let extended = sign_extend_u24(value);
+        assert_eq!(extended, 0x7FFFFF);
+    }
+
+    #[test]
+    fn test_tmps() {
+        let tmps = TMPS::new_with_raw_value(0x00);
+        assert_eq!(tmps.milli_celsius(), 3000);
+
+        let tmps = TMPS::new_with_raw_value(0x7F);
+        assert_eq!(tmps.milli_celsius(), -4470);
+
+        let tmps = TMPS::new_with_raw_value(0x80);
+        assert_eq!(tmps.milli_celsius(), 10529);
     }
 }

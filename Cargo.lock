@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "ak09940a"
-version = "0.2.0"
+version = "0.2.2"
 dependencies = [
  "arbitrary-int",
  "arrayref",

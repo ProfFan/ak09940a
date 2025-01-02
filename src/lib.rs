@@ -15,6 +15,7 @@ pub mod async_type {
     use crate::ll::reg::{self, RegAddress};
     use crate::states::{Continuous, ExternalTrigger, Powerdown, SingleShot};
     use arbitrary_int::{u1, u5};
+    use embedded_hal::spi::Operation;
     use maybe_async::maybe_async_attr;
     use SpiType::spi::SpiDevice;
 
@@ -28,6 +29,8 @@ pub mod async_type {
         SensorBusy,
         /// Invalid mode
         InvalidMode,
+        /// Invalid who am i
+        InvalidWhoAmI(u8),
     }
 
     #[derive(Debug, Clone)]
@@ -35,7 +38,7 @@ pub mod async_type {
     where
         DEV: SpiDevice,
     {
-        dev: LL<DEV>,
+        pub dev: LL<DEV>,
         _state: State,
     }
 
@@ -58,6 +61,31 @@ pub mod async_type {
         /// Enter single-shot mode
         #[maybe_async_attr]
         pub async fn single_shot(mut self) -> Result<AK09940A<DEV, SingleShot>, Error<DEV>> {
+            // Reset the sensor
+            let cntl4 = reg::CNTL4::new_with_raw_value(0x00)
+                .with_soft_reset(true)
+                .raw_value();
+            self.dev
+                .write_reg(RegAddress::CNTL4, cntl4)
+                .await
+                .map_err(Error::Spi)?;
+
+            self.dev
+                .dev
+                .transaction(&mut [Operation::DelayNs(100000)])
+                .await
+                .map_err(Error::Spi)?;
+
+            let who_am_i = self
+                .dev
+                .read_reg(RegAddress::WIA1)
+                .await
+                .map_err(Error::Spi)?;
+            let who_am_i = crate::ll::reg::WIA1::new_with_raw_value(who_am_i);
+            if who_am_i.company_id() != 0x48 {
+                return Err(Error::InvalidWhoAmI(who_am_i.company_id()));
+            }
+
             let cntl3 = self
                 .dev
                 .read_reg(RegAddress::CNTL3)
@@ -89,6 +117,31 @@ pub mod async_type {
                 return Err(Error::InvalidMode);
             }
 
+            // Reset the sensor
+            let cntl4 = reg::CNTL4::new_with_raw_value(0x00)
+                .with_soft_reset(true)
+                .raw_value();
+            self.dev
+                .write_reg(RegAddress::CNTL4, cntl4)
+                .await
+                .map_err(Error::Spi)?;
+
+            self.dev
+                .dev
+                .transaction(&mut [Operation::DelayNs(100000)])
+                .await
+                .map_err(Error::Spi)?;
+
+            let who_am_i = self
+                .dev
+                .read_reg(RegAddress::WIA1)
+                .await
+                .map_err(Error::Spi)?;
+            let who_am_i = crate::ll::reg::WIA1::new_with_raw_value(who_am_i);
+            if who_am_i.company_id() != 0x48 {
+                return Err(Error::InvalidWhoAmI(who_am_i.company_id()));
+            }
+
             let cntl3 = self
                 .dev
                 .read_reg(RegAddress::CNTL3)
@@ -115,18 +168,30 @@ pub mod async_type {
         pub async fn external_trigger(
             mut self,
         ) -> Result<AK09940A<DEV, ExternalTrigger>, Error<DEV>> {
-            let cntl3 = self
-                .dev
-                .read_reg(RegAddress::CNTL3)
-                .await
-                .map_err(Error::Spi)?;
-            let cntl3 = crate::ll::reg::CNTL3::new_with_raw_value(cntl3)
-                .with_operation_mode(u5::new(0b11000))
+            // Reset the sensor
+            let cntl4 = reg::CNTL4::new_with_raw_value(0x00)
+                .with_soft_reset(true)
                 .raw_value();
             self.dev
-                .write_reg(RegAddress::CNTL3, cntl3)
+                .write_reg(RegAddress::CNTL4, cntl4)
                 .await
                 .map_err(Error::Spi)?;
+
+            self.dev
+                .dev
+                .transaction(&mut [Operation::DelayNs(100000)])
+                .await
+                .map_err(Error::Spi)?;
+
+            let who_am_i = self
+                .dev
+                .read_reg(RegAddress::WIA1)
+                .await
+                .map_err(Error::Spi)?;
+            let who_am_i = crate::ll::reg::WIA1::new_with_raw_value(who_am_i);
+            if who_am_i.company_id() != 0x48 {
+                return Err(Error::InvalidWhoAmI(who_am_i.company_id()));
+            }
 
             let cntl1 = self
                 .dev
@@ -138,6 +203,27 @@ pub mod async_type {
                 .raw_value();
             self.dev
                 .write_reg(RegAddress::CNTL1, cntl1)
+                .await
+                .map_err(Error::Spi)?;
+
+            let cntl3 = self
+                .dev
+                .read_reg(RegAddress::CNTL3)
+                .await
+                .map_err(Error::Spi)?;
+            let cntl3 = crate::ll::reg::CNTL3::new_with_raw_value(cntl3)
+                .with_operation_mode(u5::new(0b11000))
+                .with_fifo_enable(true)
+                .raw_value();
+            self.dev
+                .write_reg(RegAddress::CNTL3, cntl3)
+                .await
+                .map_err(Error::Spi)?;
+
+            // Delay for 300us
+            self.dev
+                .dev
+                .transaction(&mut [Operation::DelayNs(300000)])
                 .await
                 .map_err(Error::Spi)?;
 
@@ -232,4 +318,24 @@ pub mod async_type {
 
     // -- Continuous mode --
     impl<DEV> AK09940A<DEV, Continuous> where DEV: SpiDevice {}
+
+    // -- External trigger mode --
+    impl<DEV> AK09940A<DEV, ExternalTrigger>
+    where
+        DEV: SpiDevice,
+    {
+        /// Start a new external trigger measurement
+        #[maybe_async_attr]
+        pub async fn start_waiting(&mut self) -> Result<(), Error<DEV>> {
+            let cntl3 = crate::ll::reg::CNTL3::new_with_raw_value(0x00)
+                .with_operation_mode(u5::new(0b11000))
+                .raw_value();
+            self.dev
+                .write_reg(RegAddress::CNTL3, cntl3)
+                .await
+                .map_err(Error::Spi)?;
+
+            Ok(())
+        }
+    }
 }
